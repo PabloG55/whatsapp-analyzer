@@ -60,8 +60,6 @@ export default function ExportWhatsAppChatPage() {
               </div>
               <span>•</span>
               <span>Updated January 2026</span>
-              <span>•</span>
-              <span>SEO-Optimized</span>
             </div>
           </div>
 
@@ -464,36 +462,11 @@ export default function ExportWhatsAppChatPage() {
             </div>
           </section>
 
-          {/* Related Resources */}
-          <section className="space-y-6 rounded-lg bg-slate-100 p-8">
-            <h2 className="text-2xl font-bold text-slate-900">Related Resources</h2>
-            <p className="text-slate-700">
-              Explore more guides and tools to get the most out of your WhatsApp data:
-            </p>
-            <div className="grid gap-3">
-              {[
-                { title: 'Getting Started with WhatsApp Analyzer', href: '#' },
-                { title: 'Understanding Chat Statistics and Metrics', href: '#' },
-                { title: 'Privacy and Data Security Best Practices', href: '#' },
-                { title: 'Visualizing Your Communication Patterns', href: '#' },
-              ].map((resource, idx) => (
-                <Link
-                  key={idx}
-                  href={resource.href}
-                  className="group flex items-center justify-between rounded-lg bg-white p-4 border border-slate-200 hover:border-blue-400 hover:bg-blue-50 transition-all"
-                >
-                  <span className="font-medium text-slate-900 group-hover:text-blue-600">{resource.title}</span>
-                  <ExternalLink className="h-4 w-4 text-slate-400 group-hover:text-blue-600" />
-                </Link>
-              ))}
-            </div>
-          </section>
-
           {/* Final CTA */}
-          <Card className="bg-gradient-to-r from-blue-600 to-indigo-600 border-0 text-white">
+          <Card className="bg-gradient-to-r from-purple-600 to-indigo-600 border-0 text-white">
             <CardHeader className="pb-4">
               <CardTitle>Ready to Analyze Your Chats?</CardTitle>
-              <CardDescription className="text-blue-100">
+              <CardDescription className="text-purple-100">
                 You now have everything you need to export your WhatsApp conversations and uncover fascinating insights about your communication patterns.
               </CardDescription>
             </CardHeader>
@@ -501,7 +474,7 @@ export default function ExportWhatsAppChatPage() {
               <Link href="/analyze">
                 <Button size="lg" variant="secondary" className="w-full sm:w-auto">
                   <MessageCircle className="mr-2 h-5 w-5" />
-                  Go to WhatsApp Analyzer
+                  Go to GhostChecker
                 </Button>
               </Link>
             </CardContent>
@@ -510,12 +483,10 @@ export default function ExportWhatsAppChatPage() {
           {/* Author Bio and Meta */}
           <div className="border-t pt-8 space-y-4">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <MessageCircle className="h-6 w-6 text-blue-600" />
-              </div>
+              <img src="/ghost-logo.svg" alt="GhostChecker" className="h-12 w-12" />
               <div>
-                <p className="font-semibold text-slate-900">WhatsApp Analyzer</p>
-                <p className="text-sm text-slate-600">Your trusted platform for WhatsApp chat insights and analysis</p>
+                <p className="font-semibold text-slate-900">GhostChecker</p>
+                <p className="text-sm text-slate-600">Your trusted platform for WhatsApp chat insights and ghosting detection</p>
               </div>
             </div>
           </div>

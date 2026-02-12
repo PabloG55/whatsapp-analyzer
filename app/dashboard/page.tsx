@@ -15,9 +15,12 @@ import MessageFrequencyChart from "@/components/MessageFrequencyChart";
 import ResponseTimeChart from "@/components/ResponseTimeChart";
 import ActiveHoursChart from "@/components/ActiveHoursChart";
 import LongestResponseChart from "@/components/LongestResponseChart";
+import GhostingProbabilityChart from "@/components/GhostingProbabilityChart";
 import type { ChatAnalytics, MonthYearStats, LongestGapContext } from "@/lib/types";
+import type { GhostingScore } from "@/lib/ghosting";
 import { parseWhatsAppFile } from "@/lib/parser";
 import { calculateTotals, aggregateMetrics } from "@/lib/metrics";
+import { calculateAllGhostingScores } from "@/lib/ghosting";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -28,6 +31,7 @@ export default function DashboardPage() {
   const [includeMedia, setIncludeMedia] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
   const [originalMediaCount, setOriginalMediaCount] = useState(0); // Track original media count
+  const [ghostingScores, setGhostingScores] = useState<GhostingScore[]>([]);
 
   useEffect(() => {
     const data = localStorage.getItem("whatsapp-analytics");
@@ -54,6 +58,11 @@ export default function DashboardPage() {
       if (parsed.mediaMessagesCount > 0) {
         setOriginalMediaCount(parsed.mediaMessagesCount);
       }
+      
+      // Calculate ghosting scores
+      const participantNames = parsed.participants.map((p: any) => p.name);
+      const scores = calculateAllGhostingScores(parsed.messages, participantNames);
+      setGhostingScores(scores);
     } catch (error) {
       console.error("Failed to parse analytics data:", error);
       router.push("/");
@@ -86,6 +95,11 @@ export default function DashboardPage() {
       };
       
       localStorage.setItem("whatsapp-analytics", JSON.stringify(dataToStore));
+      
+      // Recalculate ghosting scores
+      const participantNames = result.data.participants.map((p) => p.name);
+      const scores = calculateAllGhostingScores(result.data.messages, participantNames);
+      setGhostingScores(scores);
     }
     
     setIsRecalculating(false);
@@ -215,12 +229,12 @@ export default function DashboardPage() {
   const handleReset = () => {
     localStorage.removeItem("whatsapp-analytics");
     localStorage.removeItem("whatsapp-file-content");
-    router.push("/");
+    router.push("/analyze");
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="max-w-5xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Button variant="ghost" onClick={handleReset}>
@@ -360,11 +374,12 @@ export default function DashboardPage() {
 
         {/* Charts */}
         <Tabs defaultValue="frequency" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="frequency">Message Frequency</TabsTrigger>
-            <TabsTrigger value="response">Response Time</TabsTrigger>
-            <TabsTrigger value="hours">Active Hours</TabsTrigger>
-            <TabsTrigger value="longest">Longest Gap</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="frequency">Messages</TabsTrigger>
+            <TabsTrigger value="response">Response</TabsTrigger>
+            <TabsTrigger value="hours">Hours</TabsTrigger>
+            <TabsTrigger value="longest">Gaps</TabsTrigger>
+            <TabsTrigger value="ghosted">👻 Ghosted?</TabsTrigger>
           </TabsList>
 
           <TabsContent value="frequency">
@@ -431,6 +446,23 @@ export default function DashboardPage() {
                   data={chartData.longestResponseData}
                   participants={analytics.participants}
                   gapContexts={chartData.gapContexts}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="ghosted">
+            <Card>
+              <CardHeader>
+                <CardTitle>👻 Ghosting Probability</CardTitle>
+                <CardDescription>
+                  AI-powered analysis to detect if someone is ghosting you based on message patterns
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GhostingProbabilityChart
+                  ghostingScores={ghostingScores}
+                  participants={analytics.participants}
                 />
               </CardContent>
             </Card>

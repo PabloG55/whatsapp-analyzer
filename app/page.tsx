@@ -22,25 +22,30 @@ import Footer from "@/components/Footer";
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 md:py-24">
         <div className="text-center max-w-4xl mx-auto">
-          <Badge variant="secondary" className="mb-4">
+          <Badge variant="secondary" className="mb-4 bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">
             <Shield className="h-3 w-3 mr-1" />
             100% Private & Secure
           </Badge>
           
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Analyze Your WhatsApp Chats
-            <br />
-            Without Uploading Anything
-          </h1>
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <img src="/ghost-logo.svg" alt="GhostChecker" className="w-16 h-16 md:w-20 md:h-20" />
+            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              GhostChecker
+            </h1>
+          </div>
+          
+          <p className="text-2xl md:text-3xl font-semibold mb-4 text-foreground">
+            Analyze Your WhatsApp Chats & Detect Ghosting
+          </p>
           
           <p className="text-xl md:text-2xl text-muted-foreground mb-8">
             Everything happens in your browser. We never see your messages.
             <br />
-            <span className="font-semibold text-foreground">We literally cannot access your data.</span>
+            <span className="font-semibold text-foreground">Are you being ghosted? Find out in seconds.</span>
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">

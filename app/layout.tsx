@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { GoogleAnalytics } from '@next/third-parties/google';
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
@@ -14,21 +15,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Free WhatsApp Chat Analyzer - 100% Private & Client-Side",
-  description: "Analyze your WhatsApp conversations with detailed statistics. Everything happens in your browser - we never see your data. No uploads, no servers, 100% private.",
-  keywords: ["whatsapp analyzer", "private chat analysis", "client-side message statistics", "whatsapp insights", "chat statistics"],
-  authors: [{ name: "WhatsApp Analyzer" }],
+  title: "GhostChecker - Free WhatsApp Chat Analyzer & Ghosting Detector",
+  description: "Analyze WhatsApp conversations and detect if you're being ghosted. Track message frequency, response times, and conversation gaps. 100% private, client-side analysis.",
+  keywords: ["ghostchecker", "ghosting detector", "am I being ghosted", "whatsapp analyzer", "private chat analysis", "conversation insights"],
+  authors: [{ name: "GhostChecker" }],
   openGraph: {
-    title: "Free WhatsApp Chat Analyzer - 100% Private & Client-Side",
-    description: "Analyze your WhatsApp conversations with detailed statistics. Everything happens in your browser - we never see your data.",
+    title: "GhostChecker - Detect Ghosting in Your WhatsApp Chats",
+    description: "Are you being ghosted? Analyze WhatsApp conversations and get instant ghosting probability scores. 100% private - everything happens in your browser.",
     type: "website",
     locale: "en_US",
-    siteName: "WhatsApp Chat Analyzer",
+    siteName: "GhostChecker",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Free WhatsApp Chat Analyzer - 100% Private & Client-Side",
-    description: "Analyze your WhatsApp conversations with detailed statistics. Everything happens in your browser - we never see your data.",
+    title: "GhostChecker - WhatsApp Ghosting Detector",
+    description: "Analyze WhatsApp conversations and detect if you're being ghosted. 100% private, client-side analysis.",
   },
   robots: {
     index: true,
@@ -55,9 +56,9 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebApplication",
-              "name": "WhatsApp Chat Analyzer",
+              "name": "GhostChecker",
               "url": "https://yourdomain.com",
-              "description": "Free, privacy-focused WhatsApp chat analysis tool. All processing happens client-side in your browser.",
+              "description": "Free ghosting detection and WhatsApp chat analysis tool. Detect if you're being ghosted with AI-powered probability scoring. All processing happens client-side.",
               "applicationCategory": "UtilityApplication",
               "offers": {
                 "@type": "Offer",
@@ -101,6 +102,11 @@ export default function RootLayout({
       >
         {children}
         <Toaster />
+        
+        {/* Google Analytics - Modern Next.js integration */}
+        {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
+        )}
       </body>
     </html>
   );
