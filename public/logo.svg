@@ -1,0 +1,17 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="256" cy="256" r="256" fill="#3B82F6"/>
+  
+  <!-- Chat bubble -->
+  <path d="M160 180C160 163.431 173.431 150 190 150H360C376.569 150 390 163.431 390 180V300C390 316.569 376.569 330 360 330H250L190 370V330C173.431 330 160 316.569 160 300V180Z" fill="white"/>
+  
+  <!-- Lock symbol (privacy) -->
+  <rect x="230" y="210" width="52" height="60" rx="6" fill="#3B82F6"/>
+  <path d="M240 210V195C240 186.716 246.716 180 255 180C263.284 180 270 186.716 270 195V210" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="256" cy="240" r="8" fill="white"/>
+  
+  <!-- Bar chart (analytics) -->
+  <rect x="305" y="245" width="15" height="35" rx="3" fill="#10B981"/>
+  <rect x="325" y="230" width="15" height="50" rx="3" fill="#10B981"/>
+  <rect x="345" y="250" width="15" height="30" rx="3" fill="#10B981"/>
+</svg>
