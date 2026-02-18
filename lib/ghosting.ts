@@ -2,6 +2,10 @@
 // Calculates probability (0-100%) that a participant is ghosting you
 
 import type { ParsedMessage } from "./types";
+import {
+  buildConversationSessions,
+  countConversationStartsBySender,
+} from "./conversations";
 
 export interface GhostingScore {
   participant: string;
@@ -10,6 +14,7 @@ export interface GhostingScore {
     frequencyDrop: number; // 0-100
     responseTimeIncrease: number; // 0-100
     gapIncrease: number; // 0-100
+    starterImbalance: number; // 0-100 (1:1 chats only)
   };
   risk: "low" | "medium" | "high";
   insights: string[];
@@ -20,18 +25,24 @@ export interface GhostingScore {
     previousAvgResponseMinutes: number;
     longestGapRecentMinutes: number;
     avgGapHistoricalMinutes: number;
+    recentConversationStarts: number;
+    previousConversationStarts: number;
+    recentStarterSharePercent: number;
+    previousStarterSharePercent: number;
+    starterAnalysisAvailable: boolean;
   };
 }
 
 /**
  * Calculate ghosting probability for a specific participant
- * Based on 3 factors: message frequency drop, response time increase, conversation gaps
+ * Based on message frequency, response timing, conversation gaps, and (for 1:1) starter imbalance
  */
 export function calculateGhostingScore(
   messages: ParsedMessage[],
   targetParticipant: string,
   otherParticipants: string[]
 ): GhostingScore {
+  const isOneToOneChat = otherParticipants.length === 1;
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
@@ -49,7 +60,7 @@ export function calculateGhostingScore(
     (m) => m.timestamp >= sixtyDaysAgo && m.timestamp < thirtyDaysAgo
   );
 
-  // Factor 1: Message Frequency Drop (30% weight)
+  // Factor 1: Message Frequency Drop
   const recent30DaysCount = recentMessages.filter(
     (m) => m.sender === targetParticipant
   ).length;
@@ -66,7 +77,7 @@ export function calculateGhostingScore(
         )
       : 0;
 
-  // Factor 2: Response Time Increase (35% weight)
+  // Factor 2: Response Time Increase
   const recentResponseTimes = calculateResponseTimes(
     recentMessages,
     targetParticipant,
@@ -101,7 +112,7 @@ export function calculateGhostingScore(
         )
       : 0;
 
-  // Factor 3: Longest Gap Increase (35% weight)
+  // Factor 3: Longest Gap Increase
   const longestGapRecent = findLongestGap(
     recentMessages,
     targetParticipant,
@@ -124,9 +135,29 @@ export function calculateGhostingScore(
         )
       : 0;
 
+  // Factor 4: Conversation Starter Imbalance (15% weight, 1:1 only)
+  const recentStarterStats = isOneToOneChat
+    ? calculateStarterStats(recentMessages, targetParticipant, otherParticipants)
+    : { participantStarts: 0, totalStarts: 0, starterShare: 0.5 };
+  const previousStarterStats = isOneToOneChat
+    ? calculateStarterStats(previousMessages, targetParticipant, otherParticipants)
+    : { participantStarts: 0, totalStarts: 0, starterShare: 0.5 };
+
+  const starterImbalance = isOneToOneChat
+    ? calculateStarterImbalanceScore(
+        recentStarterStats.starterShare,
+        previousStarterStats.starterShare
+      )
+    : 0;
+
   // Calculate overall score (weighted average)
   const overallScore = Math.round(
-    frequencyDrop * 0.3 + responseTimeIncrease * 0.35 + gapIncrease * 0.35
+    isOneToOneChat
+      ? frequencyDrop * 0.25 +
+          responseTimeIncrease * 0.3 +
+          gapIncrease * 0.3 +
+          starterImbalance * 0.15
+      : frequencyDrop * 0.3 + responseTimeIncrease * 0.35 + gapIncrease * 0.35
   );
 
   // Determine risk level
@@ -140,12 +171,16 @@ export function calculateGhostingScore(
     frequencyDrop,
     responseTimeIncrease,
     gapIncrease,
+    starterImbalance,
     recent30DaysCount,
     previous30DaysCount,
     recentAvgResponse,
     previousAvgResponse,
     longestGapRecent,
-    avgGapHistorical
+    avgGapHistorical,
+    Math.round(recentStarterStats.starterShare * 100),
+    Math.round(previousStarterStats.starterShare * 100),
+    isOneToOneChat
   );
 
   return {
@@ -155,6 +190,7 @@ export function calculateGhostingScore(
       frequencyDrop: Math.round(frequencyDrop),
       responseTimeIncrease: Math.round(responseTimeIncrease),
       gapIncrease: Math.round(gapIncrease),
+      starterImbalance: Math.round(starterImbalance),
     },
     risk,
     insights,
@@ -165,6 +201,11 @@ export function calculateGhostingScore(
       previousAvgResponseMinutes: Math.round(previousAvgResponse),
       longestGapRecentMinutes: Math.round(longestGapRecent),
       avgGapHistoricalMinutes: Math.round(avgGapHistorical),
+      recentConversationStarts: recentStarterStats.participantStarts,
+      previousConversationStarts: previousStarterStats.participantStarts,
+      recentStarterSharePercent: Math.round(recentStarterStats.starterShare * 100),
+      previousStarterSharePercent: Math.round(previousStarterStats.starterShare * 100),
+      starterAnalysisAvailable: isOneToOneChat,
     },
   };
 }
@@ -179,10 +220,15 @@ function calculateResponseTimes(
   others: string[]
 ): number[] {
   const responseTimes: number[] = [];
+  const { messageToSession } = buildConversationSessions(messages);
 
   for (let i = 1; i < messages.length; i++) {
     const prevMsg = messages[i - 1];
     const currentMsg = messages[i];
+
+    if (messageToSession[i] !== messageToSession[i - 1]) {
+      continue;
+    }
 
     // Check if this is a response from participant to someone else
     if (
@@ -215,10 +261,15 @@ function findLongestGap(
   others: string[]
 ): number {
   let longestGap = 0;
+  const { messageToSession } = buildConversationSessions(messages);
 
   for (let i = 1; i < messages.length; i++) {
     const prevMsg = messages[i - 1];
     const currentMsg = messages[i];
+
+    if (messageToSession[i] !== messageToSession[i - 1]) {
+      continue;
+    }
 
     if (
       currentMsg.sender === participant &&
@@ -250,10 +301,15 @@ function calculateAverageGap(
   others: string[]
 ): number {
   const gaps: number[] = [];
+  const { messageToSession } = buildConversationSessions(messages);
 
   for (let i = 1; i < messages.length; i++) {
     const prevMsg = messages[i - 1];
     const currentMsg = messages[i];
+
+    if (messageToSession[i] !== messageToSession[i - 1]) {
+      continue;
+    }
 
     if (
       currentMsg.sender === participant &&
@@ -274,6 +330,44 @@ function calculateAverageGap(
   return gaps.length > 0 ? gaps.reduce((a, b) => a + b, 0) / gaps.length : 0;
 }
 
+interface StarterStats {
+  participantStarts: number;
+  totalStarts: number;
+  starterShare: number;
+}
+
+function calculateStarterStats(
+  messages: ParsedMessage[],
+  participant: string,
+  others: string[]
+): StarterStats {
+  const { sessions } = buildConversationSessions(messages);
+  const startsBySender = countConversationStartsBySender(sessions);
+  const participantStarts = startsBySender[participant] || 0;
+  const otherStarts = others.reduce(
+    (sum, sender) => sum + (startsBySender[sender] || 0),
+    0
+  );
+  const totalStarts = participantStarts + otherStarts;
+
+  return {
+    participantStarts,
+    totalStarts,
+    starterShare: totalStarts > 0 ? participantStarts / totalStarts : 0.5,
+  };
+}
+
+function calculateStarterImbalanceScore(
+  recentStarterShare: number,
+  previousStarterShare: number
+): number {
+  const shareDrop = Math.max(0, previousStarterShare - recentStarterShare);
+  const currentImbalance = Math.max(0, 0.5 - recentStarterShare);
+  const score = shareDrop * 200 * 0.6 + currentImbalance * 200 * 0.4;
+
+  return Math.min(100, Math.max(0, score));
+}
+
 /**
  * Generate human-readable insights based on factors
  */
@@ -281,12 +375,16 @@ function generateInsights(
   frequencyDrop: number,
   responseTimeIncrease: number,
   gapIncrease: number,
+  starterImbalance: number,
   recentCount: number,
   previousCount: number,
   recentAvg: number,
   previousAvg: number,
   longestGap: number,
-  avgGap: number
+  avgGap: number,
+  recentStarterSharePercent: number,
+  previousStarterSharePercent: number,
+  starterAnalysisAvailable: boolean
 ): string[] {
   const insights: string[] = [];
 
@@ -335,6 +433,22 @@ function generateInsights(
     insights.push(
       `Conversation gaps increasing: longest gap ${formatMinutes(longestGap)}`
     );
+  }
+
+  if (starterAnalysisAvailable) {
+    if (starterImbalance > 70) {
+      insights.push(
+        `They are starting far fewer conversations: ${recentStarterSharePercent}% of conversation starts recently (was ${previousStarterSharePercent}%)`
+      );
+    } else if (starterImbalance > 40) {
+      insights.push(
+        `Conversation initiative is declining: they now start ${recentStarterSharePercent}% of conversations (was ${previousStarterSharePercent}%)`
+      );
+    } else {
+      insights.push("Conversation-start initiative is relatively stable");
+    }
+  } else {
+    insights.push("Conversation-start analysis is available for 1:1 chats only");
   }
 
   // Overall assessment

@@ -6,7 +6,6 @@ import {
   RadialBar,
   ResponsiveContainer,
   PolarAngleAxis,
-  Legend,
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -66,6 +65,11 @@ export default function GhostingProbabilityChart({
   if (!selectedScore) {
     return null;
   }
+
+  const usesStarterFactor = selectedScore.rawData.starterAnalysisAvailable;
+  const frequencyWeight = usesStarterFactor ? "25%" : "30%";
+  const responseWeight = usesStarterFactor ? "30%" : "35%";
+  const gapWeight = usesStarterFactor ? "30%" : "35%";
 
   // Prepare data for radial chart
   const chartData = [
@@ -182,10 +186,10 @@ export default function GhostingProbabilityChart({
                   <div>
                     <p className="font-semibold text-red-900 dark:text-red-300">High Ghosting Risk</p>
                     <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-                      Multiple indicators suggest this person's communication pattern has significantly changed.
-                      They may be distancing themselves from the conversation.
-                    </p>
-                  </div>
+                       Multiple indicators suggest this person&apos;s communication pattern has significantly changed.
+                       They may be distancing themselves from the conversation.
+                     </p>
+                   </div>
                 </div>
               </div>
             )}
@@ -236,7 +240,7 @@ export default function GhostingProbabilityChart({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Frequency Drop */}
             <div className="space-y-3">
               <div className="flex items-center gap-2">
@@ -245,7 +249,7 @@ export default function GhostingProbabilityChart({
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Weight: 30%</span>
+                  <span className="text-muted-foreground">Weight: {frequencyWeight}</span>
                   <span className="font-medium">{selectedScore.factors.frequencyDrop}%</span>
                 </div>
                 <Progress value={selectedScore.factors.frequencyDrop} className="h-2" />
@@ -264,7 +268,7 @@ export default function GhostingProbabilityChart({
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Weight: 35%</span>
+                  <span className="text-muted-foreground">Weight: {responseWeight}</span>
                   <span className="font-medium">{selectedScore.factors.responseTimeIncrease}%</span>
                 </div>
                 <Progress value={selectedScore.factors.responseTimeIncrease} className="h-2" />
@@ -283,7 +287,7 @@ export default function GhostingProbabilityChart({
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Weight: 35%</span>
+                  <span className="text-muted-foreground">Weight: {gapWeight}</span>
                   <span className="font-medium">{selectedScore.factors.gapIncrease}%</span>
                 </div>
                 <Progress value={selectedScore.factors.gapIncrease} className="h-2" />
@@ -292,6 +296,33 @@ export default function GhostingProbabilityChart({
                 Longest recent: {formatTime(selectedScore.rawData.longestGapRecentMinutes)} →
                 Avg: {formatTime(selectedScore.rawData.avgGapHistoricalMinutes)}
               </div>
+            </div>
+
+            {/* Starter Imbalance */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-4 w-4 text-muted-foreground" />
+                <h4 className="font-semibold text-sm">Conversation Starter Imbalance</h4>
+              </div>
+              {selectedScore.rawData.starterAnalysisAvailable ? (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Weight: 15%</span>
+                      <span className="font-medium">{selectedScore.factors.starterImbalance}%</span>
+                    </div>
+                    <Progress value={selectedScore.factors.starterImbalance} className="h-2" />
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Recent starts: {selectedScore.rawData.recentConversationStarts} ({selectedScore.rawData.recentStarterSharePercent}%)
+                    {" "}→ Previous: {selectedScore.rawData.previousConversationStarts} ({selectedScore.rawData.previousStarterSharePercent}%)
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-muted-foreground">
+                  Available only for 1:1 chats
+                </div>
+              )}
             </div>
           </div>
         </CardContent>
@@ -329,28 +360,34 @@ export default function GhostingProbabilityChart({
             Our algorithm compares the <strong>last 30 days</strong> of conversation with the{" "}
             <strong>previous 30 days</strong> to detect changes in communication patterns.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
             <div>
-              <p className="font-semibold text-foreground mb-1">Message Frequency (30%)</p>
+              <p className="font-semibold text-foreground mb-1">Message Frequency (25% in 1:1)</p>
               <p className="text-xs">
                 Are they sending fewer messages? A significant drop indicates declining engagement.
               </p>
             </div>
             <div>
-              <p className="font-semibold text-foreground mb-1">Response Time (35%)</p>
+              <p className="font-semibold text-foreground mb-1">Response Time (30% in 1:1)</p>
               <p className="text-xs">
                 Are they taking longer to respond? Slower replies may signal reduced interest.
               </p>
             </div>
             <div>
-              <p className="font-semibold text-foreground mb-1">Conversation Gaps (35%)</p>
+              <p className="font-semibold text-foreground mb-1">Conversation Gaps (30% in 1:1)</p>
               <p className="text-xs">
                 Are silences getting longer? Growing gaps can indicate pulling away.
               </p>
             </div>
+            <div>
+              <p className="font-semibold text-foreground mb-1">Starter Imbalance (15%)</p>
+              <p className="text-xs">
+                In 1:1 chats, are they starting fewer new conversations after long quiet periods?
+              </p>
+            </div>
           </div>
           <p className="text-xs pt-2">
-            The final score is a weighted combination of all three factors. Remember: life happens! 
+            The final score is a weighted combination of these factors. Remember: life happens! 
             Context matters more than algorithms.
           </p>
         </CardContent>

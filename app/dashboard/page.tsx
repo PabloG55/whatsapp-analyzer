@@ -13,10 +13,11 @@ import { ArrowLeft, Calendar, MessageSquare, Users, Clock, Image } from "lucide-
 import { format } from "date-fns";
 import MessageFrequencyChart from "@/components/MessageFrequencyChart";
 import ResponseTimeChart from "@/components/ResponseTimeChart";
+import ConversationStartsChart from "@/components/ConversationStartsChart";
 import ActiveHoursChart from "@/components/ActiveHoursChart";
 import LongestResponseChart from "@/components/LongestResponseChart";
 import GhostingProbabilityChart from "@/components/GhostingProbabilityChart";
-import type { ChatAnalytics, MonthYearStats, LongestGapContext } from "@/lib/types";
+import type { ChatAnalytics, LongestGapContext } from "@/lib/types";
 import type { GhostingScore } from "@/lib/ghosting";
 import { parseWhatsAppFile } from "@/lib/parser";
 import { calculateTotals, aggregateMetrics } from "@/lib/metrics";
@@ -159,6 +160,10 @@ export default function DashboardPage() {
           monthYear: stat.monthYear,
           ...stat.averageResponseTime,
         })),
+        conversationStartsData: analytics.monthYearStats.map((stat) => ({
+          monthYear: stat.monthYear,
+          ...stat.conversationStarts,
+        })),
         activeHoursData: activeHoursArray,
         longestResponseData: analytics.monthYearStats.map((stat) => ({
           monthYear: stat.monthYear,
@@ -173,6 +178,7 @@ export default function DashboardPage() {
         return {
           frequencyData: [],
           responseTimeData: [],
+          conversationStartsData: [],
           activeHoursData: [],
           longestResponseData: [],
           gapContexts: {},
@@ -208,6 +214,12 @@ export default function DashboardPage() {
           {
             monthYear: monthStats.monthYear,
             ...monthStats.averageResponseTime,
+          },
+        ],
+        conversationStartsData: [
+          {
+            monthYear: monthStats.monthYear,
+            ...monthStats.conversationStarts,
           },
         ],
         activeHoursData: activeHoursArray,
@@ -400,20 +412,38 @@ export default function DashboardPage() {
           </TabsContent>
 
           <TabsContent value="response">
-            <Card>
-              <CardHeader>
-                <CardTitle>Average Response Time</CardTitle>
-                <CardDescription>
-                  Average time (in minutes) between messages from different participants
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponseTimeChart
-                  data={chartData.responseTimeData}
-                  participants={analytics.participants}
-                />
-              </CardContent>
-            </Card>
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Average Response Time</CardTitle>
+                  <CardDescription>
+                    Average time (in minutes) within active conversations (resets after 8+ hours of inactivity)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ResponseTimeChart
+                    data={chartData.responseTimeData}
+                    participants={analytics.participants}
+                  />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Conversation Starts</CardTitle>
+                  <CardDescription>
+                    Who re-initiates chats after a conversation has gone quiet for 8+ hours
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ConversationStartsChart
+                    data={chartData.conversationStartsData}
+                    participants={analytics.participants}
+                    isOneToOneChat={analytics.participants.length === 2}
+                  />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           <TabsContent value="hours">

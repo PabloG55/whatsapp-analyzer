@@ -13,7 +13,8 @@ A powerful Next.js application that analyzes WhatsApp chat export files and prov
 - 📊 **Interactive Charts**: Visualize data with Recharts
 - 📈 **Key Metrics**:
   - Message frequency by month/year per participant
-  - Average response time between participants
+  - Average response time within active conversations (resets after 8+ hours of inactivity)
+  - Conversation starts (who re-initiates after long quiet periods, 1:1 chats)
   - Most active hours of the day per participant
   - Longest time without responding (clickable to see conversation context!)
 - 🔍 **Deep Dive**: Click on longest gap bars to see the actual conversation and understand what happened
@@ -83,7 +84,8 @@ pnpm start
 ### Step 3: Explore Insights
 
 - **Message Frequency**: See how many messages each participant sent over time
-- **Response Time**: Analyze average response times by month
+- **Response Time**: Analyze average response times by month (dead conversations are excluded)
+- **Conversation Starts**: See who starts new conversations after 8+ hours of inactivity (1:1 chats)
 - **Active Hours**: Discover when each participant is most active (per-person breakdown)
 - **Longest Gap**: See the longest delay before responding per participant
   - 💡 **Interactive**: Click on any bar to open a modal showing the actual conversation context!
@@ -144,7 +146,11 @@ Extensive use of TypeScript type guards ensures safe data handling:
 Automatically extracts unique participants from the chat file, preserving exact names including emojis and special characters.
 
 ### Response Time Calculation
-Calculates the time between consecutive messages from different participants, filtering out gaps > 24 hours to focus on active conversations.
+Calculates the time between consecutive messages from different participants only within active conversation sessions.  
+A new session starts after **8+ hours of inactivity**, and cross-session gaps are treated as conversation restarts (not wait time).
+
+### Ghosting Signal Factors
+Ghosting risk blends message frequency, response-time changes, gap changes, and (for 1:1 chats) starter-imbalance trends to avoid penalizing normal conversation restarts.
 
 ## 🧪 Testing
 
@@ -186,4 +192,3 @@ MIT License - feel free to use this project for any purpose.
 ---
 
 **Note**: This application processes all data locally in your browser. No chat data is ever sent to any server or stored anywhere except your browser's localStorage (only for the current session).
-

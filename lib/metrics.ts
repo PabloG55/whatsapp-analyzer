@@ -1,6 +1,11 @@
 // Metrics calculation for WhatsApp chat analysis
 
 import type { ParsedMessage, MonthYearStats, LongestGapContext } from "./types";
+import {
+  buildConversationSessions,
+  groupConversationStartsByMonth,
+  countConversationStartsBySender,
+} from "./conversations";
 
 // Message frequency: count messages per participant per month/year
 export function calculateMessageFrequency(
@@ -27,10 +32,16 @@ export function calculateAverageResponseTime(
   messages: ParsedMessage[]
 ): Map<string, Record<string, number[]>> {
   const responseTimesMap = new Map<string, Record<string, number[]>>();
+  const { messageToSession } = buildConversationSessions(messages);
 
   for (let i = 1; i < messages.length; i++) {
     const prevMsg = messages[i - 1];
     const currentMsg = messages[i];
+
+    // Ignore session boundaries: first message after a dead gap is a new conversation start, not a response
+    if (messageToSession[i] !== messageToSession[i - 1]) {
+      continue;
+    }
 
     // Only calculate if senders are different (one responding to another)
     if (prevMsg.sender !== currentMsg.sender) {
@@ -137,10 +148,16 @@ export function calculateLongestTimeWithoutAnswering(
 } {
   const longestGapsMap = new Map<string, Record<string, number>>();
   const contextMap = new Map<string, Record<string, LongestGapContext>>();
+  const { sessions, messageToSession } = buildConversationSessions(messages);
 
   for (let i = 1; i < messages.length; i++) {
     const prevMsg = messages[i - 1];
     const currentMsg = messages[i];
+
+    // Ignore session boundaries: dead-conversation gaps are not "time without answering"
+    if (messageToSession[i] !== messageToSession[i - 1]) {
+      continue;
+    }
 
     // When someone responds to a different person
     if (prevMsg.sender !== currentMsg.sender) {
@@ -170,9 +187,16 @@ export function calculateLongestTimeWithoutAnswering(
         if (timeDiffMinutes > currentLongest) {
           monthData[sender] = timeDiffMinutes;
 
-          // Store context: 3 messages before and after
-          const conversationBefore = messages.slice(Math.max(0, i - 3), i);
-          const conversationAfter = messages.slice(i, Math.min(messages.length, i + 4));
+          // Store context: 3 messages before and after within the same conversation session
+          const session = sessions[messageToSession[i]];
+          const conversationBefore = messages.slice(
+            Math.max(session.startIndex, i - 3),
+            i
+          );
+          const conversationAfter = messages.slice(
+            i,
+            Math.min(session.endIndex + 1, i + 4)
+          );
 
           monthContext[sender] = {
             gapMinutes: timeDiffMinutes,
@@ -197,6 +221,12 @@ export function aggregateMetrics(messages: ParsedMessage[]): MonthYearStats[] {
   const activeHoursMap = calculateActiveHours(messages);
   const activeHoursByParticipantMap = calculateActiveHoursByParticipant(messages);
   const { longestGapsMap, contextMap } = calculateLongestTimeWithoutAnswering(messages);
+  const uniqueParticipants = new Set(messages.map((msg) => msg.sender));
+  const isOneToOneChat = uniqueParticipants.size === 2;
+  const { sessions } = buildConversationSessions(messages);
+  const conversationStartsMap = isOneToOneChat
+    ? groupConversationStartsByMonth(sessions)
+    : new Map<string, Record<string, number>>();
 
   // Get all unique month/year combinations
   const allMonthYears = new Set<string>();
@@ -214,6 +244,7 @@ export function aggregateMetrics(messages: ParsedMessage[]): MonthYearStats[] {
       monthYear,
       messageFrequency: frequencyMap.get(monthYear) || {},
       averageResponseTime: averageResponseMap.get(monthYear) || {},
+      conversationStarts: conversationStartsMap.get(monthYear) || {},
       activeHours: activeHoursMap.get(monthYear) || {},
       activeHoursByParticipant: activeHoursByParticipantMap.get(monthYear) || {},
       longestTimeWithoutAnswering: longestGapsMap.get(monthYear) || {},
@@ -243,6 +274,7 @@ export function calculateTotals(messages: ParsedMessage[]): {
   totalActiveHoursByParticipant: Record<string, Record<number, number>>;
   overallAverageResponseTime: Record<string, number>;
   overallLongestTimeWithoutAnswering: Record<string, number>;
+  overallConversationStarts: Record<string, number>;
 } {
   const totalFrequency: Record<string, number> = {};
   const totalActiveHours: Record<number, number> = {};
@@ -291,11 +323,18 @@ export function calculateTotals(messages: ParsedMessage[]): {
     });
   });
 
+  const isOneToOneChat = new Set(messages.map((msg) => msg.sender)).size === 2;
+  const { sessions } = buildConversationSessions(messages);
+  const overallConversationStarts = isOneToOneChat
+    ? countConversationStartsBySender(sessions)
+    : {};
+
   return {
     totalFrequency,
     totalActiveHours,
     totalActiveHoursByParticipant,
     overallAverageResponseTime,
     overallLongestTimeWithoutAnswering,
+    overallConversationStarts,
   };
 }

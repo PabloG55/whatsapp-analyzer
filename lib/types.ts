@@ -20,6 +20,7 @@ export interface MonthYearStats {
   monthYear: string;
   messageFrequency: Record<string, number>; // participant name -> count
   averageResponseTime: Record<string, number>; // participant name -> avg ms
+  conversationStarts: Record<string, number>; // participant name -> conversation starts (1:1 only)
   activeHours: Record<number, number>; // hour (0-23) -> message count
   activeHoursByParticipant: Record<string, Record<number, number>>; // participant -> hour -> count
   longestTimeWithoutAnswering: Record<string, number>; // participant name -> longest gap in minutes
